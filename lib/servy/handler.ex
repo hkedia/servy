@@ -2,10 +2,36 @@ defmodule Servy.Handler do
   def handle(request) do
     request
     |> parse
+    |> rewrite_path
     |> log
     |> route
+    |> track
+    |> emojify
     |> format_response
   end
+
+  def track(%{status: 404, path: path} = conv) do
+    IO.puts("Warning: #{path} is on the loose!")
+    conv
+  end
+
+  def track(conv), do: conv
+
+  def rewrite_path(%{path: "/wildlife"} = conv) do
+    %{conv | path: "/wildthings"}
+  end
+
+  def rewrite_path(%{path: path} = conv) do
+    regex = ~r{\/(?<thing>\w+)\?id=(?<id>\d+)}
+    captures = Regex.named_captures(regex, path)
+    rewrite_path_captures(conv, captures)
+  end
+
+  def rewrite_path_captures(conv, %{"thing" => thing, "id" => id}) do
+    %{conv | path: "/#{thing}/#{id}"}
+  end
+
+  def rewrite_path_captures(conv, nil), do: conv
 
   def log(conv) do
     IO.inspect(conv)
@@ -42,7 +68,7 @@ defmodule Servy.Handler do
     %{conv | status: 403, resp_body: "Deleting a bear is forbidden"}
   end
 
-  def route(%{method: _method, path: path} = conv) do
+  def route(%{path: path} = conv) do
     %{conv | status: 404, resp_body: "No #{path} here!"}
   end
 
@@ -66,6 +92,14 @@ defmodule Servy.Handler do
       500 => "Internal Server Error"
     }[code]
   end
+
+  defp emojify(%{status: 200} = conv) do
+    emoji = String.duplicate("🎉", 5)
+    body = emoji <> "\n" <> conv.resp_body <> "\n" <> emoji
+    %{conv | resp_body: body}
+  end
+
+  defp emojify(conv), do: conv
 end
 
 request = """
@@ -118,6 +152,30 @@ IO.puts(response)
 
 request = """
 DELETE /bears/1 HTTP/1.1
+Host: example.com
+User-Agent: ExampleBrowser/1.0
+Accept: */*
+
+"""
+
+response = Servy.Handler.handle(request)
+
+IO.puts(response)
+
+request = """
+GET /wildlife HTTP/1.1
+Host: example.com
+User-Agent: ExampleBrowser/1.0
+Accept: */*
+
+"""
+
+response = Servy.Handler.handle(request)
+
+IO.puts(response)
+
+request = """
+GET /bears?id=1 HTTP/1.1
 Host: example.com
 User-Agent: ExampleBrowser/1.0
 Accept: */*
