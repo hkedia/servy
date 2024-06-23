@@ -6,6 +6,7 @@ defmodule Servy.Handler do
     |> log
     |> route
     |> track
+    |> emojify
     |> format_response
   end
 
@@ -18,6 +19,10 @@ defmodule Servy.Handler do
 
   def rewrite_path(%{path: "/wildlife"} = conv) do
     %{conv | path: "/wildthings"}
+  end
+
+  def rewrite_path(%{path: "/bears?id=" <> id} = conv) do
+    %{conv | path: "/bears/#{id}"}
   end
 
   def rewrite_path(conv), do: conv
@@ -81,6 +86,14 @@ defmodule Servy.Handler do
       500 => "Internal Server Error"
     }[code]
   end
+
+  defp emojify(%{status: 200} = conv) do
+    emoji = String.duplicate("🎉", 5)
+    body = emoji <> "\n" <> conv.resp_body <> "\n" <> emoji
+    %{conv | resp_body: body}
+  end
+
+  defp emojify(conv), do: conv
 end
 
 request = """
@@ -145,6 +158,18 @@ IO.puts(response)
 
 request = """
 GET /wildlife HTTP/1.1
+Host: example.com
+User-Agent: ExampleBrowser/1.0
+Accept: */*
+
+"""
+
+response = Servy.Handler.handle(request)
+
+IO.puts(response)
+
+request = """
+GET /bears?id=1 HTTP/1.1
 Host: example.com
 User-Agent: ExampleBrowser/1.0
 Accept: */*
