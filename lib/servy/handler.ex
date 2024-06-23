@@ -7,7 +7,7 @@ defmodule Servy.Handler do
   alias Servy.Parser
   alias Servy.FileHandler
 
-  @pages_path Path.expand("../../pages", __DIR__)
+  @pages_path Path.expand("pages", File.cwd!())
 
   @doc "Transforms the request into a response"
   def handle(request) do
