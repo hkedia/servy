@@ -5,6 +5,7 @@ defmodule Servy.Handler do
 
   alias Servy.Plugins
   alias Servy.Parser
+  alias Servy.FileHandler
 
   @pages_path Path.expand("../../pages", __DIR__)
 
@@ -32,7 +33,7 @@ defmodule Servy.Handler do
     @pages_path
     |> Path.join("form.html")
     |> File.read()
-    |> handle_file(conv)
+    |> FileHandler.handle_file(conv)
   end
 
   def route(%{method: "GET", path: "/bears/" <> id} = conv) do
@@ -49,30 +50,18 @@ defmodule Servy.Handler do
     @pages_path
     |> Path.join("about.html")
     |> File.read()
-    |> handle_file(conv)
+    |> FileHandler.handle_file(conv)
   end
 
   def route(%{method: "GET", path: "/pages/" <> file} = conv) do
     @pages_path
     |> Path.join(file <> ".html")
     |> File.read()
-    |> handle_file(conv)
+    |> FileHandler.handle_file(conv)
   end
 
   def route(%{path: path} = conv) do
     %{conv | status: 404, resp_body: "No #{path} here!"}
-  end
-
-  defp handle_file({:ok, content}, conv) do
-    %{conv | status: 200, resp_body: content}
-  end
-
-  defp handle_file({:error, :enoent}, conv) do
-    %{conv | status: 404, resp_body: "File not found"}
-  end
-
-  defp handle_file({:error, reason}, conv) do
-    %{conv | status: 500, resp_body: "File error: #{reason}"}
   end
 
   # Implementation using case statements
